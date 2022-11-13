@@ -14,9 +14,9 @@ app = Flask(__name__)
 
 # "mysql://root:3YiF9fywkgT010NIQT3Z@containers-us-west-70.railway.app:7204/railway"
 # "mysql://caretaker:caretaker1@127.0.0.1:3306/caretaker"
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = "mysql+pymysql://s3kx1pfetx2agpt0:n5tqeu5t6tyt3p5k@qvti2nukhfiig51b.cbetxkdyhwsb.us-east-1.rds.amazonaws.com:3306/s1iottgcx110rvoj"
+# app.config[
+#    "SQLALCHEMY_DATABASE_URI"
+# ] = "mysql+pymysql://s3kx1pfetx2agpt0:n5tqeu5t6tyt3p5k@qvti2nukhfiig51b.cbetxkdyhwsb.us-east-1.rds.amazonaws.com:3306/s1iottgcx110rvoj"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["JWT_SECRET_KEY"] = "caretaker"
