@@ -11,7 +11,10 @@ from flask_jwt_extended import JWTManager
 app = Flask(__name__)
 
 # mysql://USER:PASSWORD@HOST:PORT/DATABASE
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://caretaker:caretaker1@127.0.0.1:3306/caretaker"
+
+app.config[
+    "SQLALCHEMY_DATABASE_URI"
+] = "mysql://root:3YiF9fywkgT010NIQT3Z@containers-us-west-70.railway.app:7204/railway"  # "mysql://caretaker:caretaker1@127.0.0.1:3306/caretaker"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["JWT_SECRET_KEY"] = "caretaker"
