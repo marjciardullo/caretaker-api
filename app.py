@@ -12,6 +12,7 @@ from db import db
 # mysql://USER:PASSWORD@HOST:PORT/DATABASE
 app = Flask(__name__)
 
+
 # "mysql://root:3YiF9fywkgT010NIQT3Z@containers-us-west-70.railway.app:7204/railway"
 # "mysql://caretaker:caretaker1@127.0.0.1:3306/caretaker"
 app.config[
