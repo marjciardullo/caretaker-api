@@ -7,6 +7,7 @@ from models.exam import Exam
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import JWTManager
+from db import db
 
 
 app = Flask(__name__)
@@ -28,6 +29,11 @@ jwt = JWTManager(app)
 def create_tables():
     print("Creating database...")
     db.create_all()
+
+
+@app.route("/")
+def home_view():
+    return "<h1>Caretaker Flask Api</h1>"
 
 
 @app.route("/usuario/registrar", methods=["POST"])
@@ -340,10 +346,3 @@ def delete_exam(exame_id):
         return {"message": "exam deleted successfully!"}, 200
 
     return {"message": "Error while delete exam"}, 400
-
-
-if __name__ == "__main__":
-    from db import db
-
-    db.init_app(app)
-    app.run(debug=True)
