@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from models.user import User
 from models.medication import Medication
 from models.appointment import Appointment
@@ -10,6 +11,7 @@ from flask_jwt_extended import JWTManager
 
 app = Flask(__name__)
 
+CORS(app)
 # mysql://USER:PASSWORD@HOST:PORT/DATABASE
 
 app.config[
