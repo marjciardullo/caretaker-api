@@ -12,6 +12,7 @@ MarkupSafe==2.1.1
 mysql-connector==2.2.9
 mysqlclient==2.1.1
 PyJWT==2.6.0
+PyMySQL==1.0.2
 six==1.16.0
 SQLAlchemy==1.4.43
 typing_extensions==4.4.0
