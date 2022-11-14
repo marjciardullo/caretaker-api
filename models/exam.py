@@ -2,7 +2,6 @@ from db import db
 
 
 class Exam(db.Model):
-    __bind_key__ = "caretaker"
     __tablename__ = "exame"
 
     id = db.Column(db.Integer, primary_key=True)

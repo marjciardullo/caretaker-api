@@ -2,7 +2,6 @@ from db import db
 
 
 class Appointment(db.Model):
-    __bind_key__ = "caretaker"
     __tablename__ = "consulta"
 
     id = db.Column(db.Integer, primary_key=True)

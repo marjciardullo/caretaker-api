@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("MYSQL_DATABASE")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
-app.config["JWT_SECRET_KEY"] = "caretaker"
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET")
 
 jwt = JWTManager(app)
 
@@ -23,7 +23,7 @@ jwt = JWTManager(app)
 @app.before_first_request
 def create_tables():
     print("Creating database...")
-    db.create_all(bind=[None, "caretaker"])
+    db.create_all()
 
 
 @app.route("/")
