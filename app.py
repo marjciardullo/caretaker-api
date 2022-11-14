@@ -30,7 +30,7 @@ jwt = JWTManager(app)
 @app.before_first_request
 def create_tables():
     print("Creating database...")
-    db.create_all()
+    db.create_all(bind=[None, "caretaker"])
 
 
 @app.route("/")

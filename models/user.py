@@ -2,6 +2,7 @@ from db import db
 
 
 class User(db.Model):
+    __bind_key__ = "caretaker"
     __tablename__ = "usuario"
 
     id = db.Column(db.Integer, primary_key=True)
