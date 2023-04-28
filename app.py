@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from models.user import User
 from models.medication import Medication
 from models.appointment import Appointment
@@ -8,336 +8,352 @@ from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import JWTManager
 from db import db
+from flask_cors import CORS, cross_origin
+import json
 
 # mysql://USER:PASSWORD@HOST:PORT/DATABASE
 app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("MYSQL_DATABASE")
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://localhost:3306/caretaker' #os.getenv("MYSQL_DATABASE")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PROPAGATE_EXCEPTIONS"] = True
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET")
+app.config["JWT_SECRET_KEY"] = '5_!!^./2.$0|p68{9#*g?.(x,i$[w}fa' #os.getenv("JWT_SECRET")
 
 jwt = JWTManager(app)
-
+CORS(app)
 
 @app.before_first_request
 def create_tables():
-    print("Creating database...")
-    db.create_all()
+	print("Creating database...")
+	db.create_all()
 
 
 @app.route("/")
 def home_view():
-    return "<h1>Caretaker Flask Api</h1>"
+	return "<h1>Caretaker Flask Api</h1>"
 
 
 @app.route("/usuario/registrar", methods=["POST"])
 def register():
 
-    user = User.find_user_by_email(email=request.json["email"])
+	user_email = User.find_user_by_email(email=request.json["email"])
+	user_username = User.find_user_by_username(username=request.json["username"])
 
-    if user:
-        return {"message": "Email already exists"}, 404
+	if user_email:
+		return {"message": "Email already exists"}, 404
 
-    new_user = User(
-        request.json["nome"],
-        request.json["email"],
-        request.json["senha"],
-        request.json["nascimento"],
-    )
+	if user_username:
+		return {"message": "Username already exists"}, 404
 
-    try:
-        new_user.save_to_db()
-    except Exception as err:
-        return {"menssage": f"Error while register new user: {err}"}, 404
+	new_user = User(
+		request.json["username"],
+		'', # nome
+		request.json["email"],
+		request.json["senha"],
+		'', # nascimento
+	)
 
-    return {"message": "User registered succesfully!"}, 201
+	try:
+		new_user.save_to_db()
+	except Exception as err:
+		return {"message": f"Error while register new user: {err}"}, 404
+
+	return {"message": "User registered succesfully!"}, 201
 
 
 @app.route("/login", methods=["POST"])
 def login():
-    user = User.find_user_by_email(email=request.json["email"])
+	user = User.find_user_by_login(username=request.json["username"], password=request.json["password"])
 
-    if user:
-        access_token = create_access_token(identity=user.email)
-        return {"access_token": access_token}, 200
+	if user:
+		access_token = create_access_token(identity=user.email)
+		response = {}
+		response["access_token"] = access_token
+		response["usuario"] = {
+			"id": user.id,
+			"username": user.username,
+			"nome": user.nome,
+			"email": user.email,
+			"nascimento": user.nascimento,
+		}
+		return response, 200
 
-    return {"message": "Please, sign in to your account!"}, 404
+	return {"message": "Please, sign in to your account!"}, 404
 
 
 @app.route("/usuario/<user_id>", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def get_user(user_id):
-    user = User.find_user_by_id(user_id)
+	user = User.find_user_by_id(user_id)
 
-    if not user:
-        return {"message": "User not found!"}, 404
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
 
-    return {
-        "id": user.id,
-        "nome": user.nome,
-        "email": user.email,
-        "senha": user.senha,
-        "nascimento": user.nascimento,
-    }, 200
+	return {
+		"id": user.id,
+		"username": user.username,
+		"nome": user.nome,
+		"email": user.email,
+		"nascimento": user.nascimento,
+	}, 200
 
 
 @app.route("/usuario/<user_id>", methods=["PUT"])
 # @jwt_required()
 def update_user(user_id):
-    user = User.find_user_by_id(user_id)
+	user = User.find_user_by_id(user_id)
 
-    if not user:
-        return {"message": "User not found!"}, 404
+	if not user:
+		return {"message": "User not found!"}, 404
 
-    user.nome = request.json["nome"]
-    user.email = request.json["email"]
-    user.senha = request.json["senha"]
-    user.nascimento = request.json["nascimento"]
+	user.nome = request.json["nome"]
+	user.email = request.json["email"]
+	user.senha = request.json["senha"]
+	user.nascimento = request.json["nascimento"]
 
-    try:
-        user.save_to_db()
-    except Exception as err:
-        return {"mensagem": f"Erro ao atualizar usuário: {err}"}, 400
+	try:
+		user.save_to_db()
+	except Exception as err:
+		return {"mensagem": f"Erro ao atualizar usuário: {err}"}, 400
 
-    return {"message": "user updated succesfully!"}, 200
+	return {"message": "user updated succesfully!"}, 200
 
 
 @app.route("/usuario/<user_id>", methods=["DELETE"])
 # @jwt_required()
 def delete_user(user_id):
-    user = User.find_user_by_id(user_id)
+	user = User.find_user_by_id(user_id)
 
-    if user:
-        user.delete_from_db()
-        return {"message": "user deleted successfully!"}, 200
+	if user:
+		user.delete_from_db()
+		return {"message": "user deleted successfully!"}, 200
 
-    return {"message": "Error while delete user"}, 400
+	return {"message": "Error while delete user"}, 400
 
 
 @app.route("/medicamento", methods=["POST"])
 # @jwt_required()
 def create_medication():
 
-    medication = Medication.find_medication_by_name(nome=request.json["nome"])
+	medication = Medication.find_medication_by_name(nome=request.json["nome"])
 
-    if medication:
-        return {"message": "Medication already exists"}, 404
+	if medication:
+		return {"message": "Medication already exists"}, 404
 
-    new_medication = Medication(
-        request.json["nome"],
-        request.json["dosagem"],
-        request.json["qt_medicamento"],
-        request.json["obs_medicamento"],
-        request.json["frequencia_diaria"],
-        request.json["frequencia_horas"],
-    )
+	new_medication = Medication(
+		request.json["nome"],
+		request.json["dosagem"],
+		request.json["qt_medicamento"],
+		request.json["obs_medicamento"],
+		request.json["frequencia_diaria"],
+		request.json["frequencia_horas"],
+	)
 
-    try:
-        new_medication.save_to_db()
-    except Exception as err:
-        return {"menssage": f"Error while register new medication: {err}"}, 404
+	try:
+		new_medication.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while register new medication: {err}"}, 404
 
-    return {"message": "medication registered succesfully!"}, 201
+	return {"message": "medication registered succesfully!"}, 201
 
 
 @app.route("/medicamento/<med_id>", methods=["GET"])
 # @jwt_required()
 def get_medication(med_id):
-    medication = Medication.find_medication_by_id(med_id)
+	medication = Medication.find_medication_by_id(med_id)
 
-    if not medication:
-        return {"message": "Medication not found!"}, 404
+	if not medication:
+		return {"message": "Medication not found!"}, 404
 
-    return {
-        "id": medication.id,
-        "nome": medication.nome,
-        "dosagem": medication.dosagem,
-        "qt_medicamento": medication.qt_medicamento,
-        "obs_medicamento": medication.obs_medicamento,
-        "frequencia_diaria": medication.frequencia_diaria,
-        "frequencia_horas": medication.frequencia_horas,
-    }, 200
+	return {
+		"id": medication.id,
+		"nome": medication.nome,
+		"dosagem": medication.dosagem,
+		"qt_medicamento": medication.qt_medicamento,
+		"obs_medicamento": medication.obs_medicamento,
+		"frequencia_diaria": medication.frequencia_diaria,
+		"frequencia_horas": medication.frequencia_horas,
+	}, 200
 
 
 @app.route("/medicamento/<med_id>", methods=["PUT"])
 # @jwt_required()
 def update_medication(med_id):
-    medication = Medication.find_medication_by_id(med_id)
+	medication = Medication.find_medication_by_id(med_id)
 
-    if not medication:
-        return {"message": "Medication not found!"}, 404
+	if not medication:
+		return {"message": "Medication not found!"}, 404
 
-    medication.nome = request.json["nome"]
-    medication.dosagem = request.json["dosagem"]
-    medication.qt_medicamento = request.json["qt_medicamento"]
-    medication.obs_medicamento = request.json["obs_medicamento"]
-    medication.frequencia_diaria = request.json["frequencia_diaria"]
-    medication.frequencia_horas = request.json["frequencia_horas"]
+	medication.nome = request.json["nome"]
+	medication.dosagem = request.json["dosagem"]
+	medication.qt_medicamento = request.json["qt_medicamento"]
+	medication.obs_medicamento = request.json["obs_medicamento"]
+	medication.frequencia_diaria = request.json["frequencia_diaria"]
+	medication.frequencia_horas = request.json["frequencia_horas"]
 
-    try:
-        medication.save_to_db()
-    except Exception as err:
-        return {"mensagem": f"Erro ao atualizar medicamento: {err}"}, 400
+	try:
+		medication.save_to_db()
+	except Exception as err:
+		return {"mensagem": f"Erro ao atualizar medicamento: {err}"}, 400
 
-    return {"message": "medication updated succesfully!"}, 200
+	return {"message": "medication updated succesfully!"}, 200
 
 
 @app.route("/medicamento/<med_id>", methods=["DELETE"])
 # @jwt_required()
 def delete_medication(med_id):
-    medication = Medication.find_medication_by_id(med_id)
+	medication = Medication.find_medication_by_id(med_id)
 
-    if medication:
-        medication.delete_from_db()
-        return {"message": "medication deleted successfully!"}, 200
+	if medication:
+		medication.delete_from_db()
+		return {"message": "medication deleted successfully!"}, 200
 
-    return {"message": "Error while delete medication"}, 400
+	return {"message": "Error while delete medication"}, 400
 
 
 @app.route("/consulta", methods=["POST"])
 # @jwt_required()
 def create_appointment():
 
-    appointment = Appointment.find_appointment_by_name(nome=request.json["nome"])
+	appointment = Appointment.find_appointment_by_name(nome=request.json["nome"])
 
-    if appointment:
-        return {"message": "Appointment already exists"}, 404
+	if appointment:
+		return {"message": "Appointment already exists"}, 404
 
-    new_appointment = Appointment(
-        request.json["nome"],
-        request.json["descricao"],
-        request.json["data"],
-        request.json["horario"],
-    )
+	new_appointment = Appointment(
+		request.json["nome"],
+		request.json["descricao"],
+		request.json["data"],
+		request.json["horario"],
+	)
 
-    try:
-        new_appointment.save_to_db()
-    except Exception as err:
-        return {"menssage": f"Error while register new appointment: {err}"}, 404
+	try:
+		new_appointment.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while register new appointment: {err}"}, 404
 
-    return {"message": "appointment registered succesfully!"}, 201
+	return {"message": "appointment registered succesfully!"}, 201
 
 
 @app.route("/consulta/<cons_id>", methods=["GET"])
 # @jwt_required()
 def get_appointment(cons_id):
-    appointment = Appointment.find_appointment_by_id(cons_id)
+	appointment = Appointment.find_appointment_by_id(cons_id)
 
-    if not appointment:
-        return {"message": "Appointment not found!"}, 404
+	if not appointment:
+		return {"message": "Appointment not found!"}, 404
 
-    return {
-        "id": appointment.id,
-        "nome": appointment.nome,
-        "descricao": appointment.descricao,
-        "data": appointment.data,
-        "horario": appointment.horario,
-    }, 200
+	return {
+		"id": appointment.id,
+		"nome": appointment.nome,
+		"descricao": appointment.descricao,
+		"data": appointment.data,
+		"horario": appointment.horario,
+	}, 200
 
 
 @app.route("/consulta/<cons_id>", methods=["PUT"])
 # @jwt_required()
 def update_appointment(cons_id):
-    appointment = Appointment.find_appointment_by_id(cons_id)
+	appointment = Appointment.find_appointment_by_id(cons_id)
 
-    if not appointment:
-        return {"message": "Appointment not found!"}, 404
+	if not appointment:
+		return {"message": "Appointment not found!"}, 404
 
-    appointment.nome = request.json["nome"]
-    appointment.descricao = request.json["descricao"]
-    appointment.data = request.json["data"]
-    appointment.horario = request.json["horario"]
+	appointment.nome = request.json["nome"]
+	appointment.descricao = request.json["descricao"]
+	appointment.data = request.json["data"]
+	appointment.horario = request.json["horario"]
 
-    try:
-        appointment.save_to_db()
-    except Exception as err:
-        return {"mensagem": f"Erro ao atualizar consulta: {err}"}, 400
+	try:
+		appointment.save_to_db()
+	except Exception as err:
+		return {"mensagem": f"Erro ao atualizar consulta: {err}"}, 400
 
-    return {"message": "appointment updated succesfully!"}, 200
+	return {"message": "appointment updated succesfully!"}, 200
 
 
 @app.route("/consulta/<cons_id>", methods=["DELETE"])
 # @jwt_required()
 def delete_appointment(cons_id):
-    appointment = Appointment.find_appointment_by_id(cons_id)
+	appointment = Appointment.find_appointment_by_id(cons_id)
 
-    if appointment:
-        appointment.delete_from_db()
-        return {"message": "appointment deleted successfully!"}, 200
+	if appointment:
+		appointment.delete_from_db()
+		return {"message": "appointment deleted successfully!"}, 200
 
-    return {"message": "Error while delete appointment"}, 400
+	return {"message": "Error while delete appointment"}, 400
 
 
 @app.route("/exame", methods=["POST"])
 # @jwt_required()
 def create_exam():
 
-    exam = Exam.find_exam_by_name(nome=request.json["nome"])
+	exam = Exam.find_exam_by_name(nome=request.json["nome"])
 
-    if exam:
-        return {"message": "Exam already exists"}, 404
+	if exam:
+		return {"message": "Exam already exists"}, 404
 
-    new_exam = Exam(
-        request.json["nome"],
-        request.json["descricao"],
-        request.json["data"],
-        request.json["horario"],
-    )
+	new_exam = Exam(
+		request.json["nome"],
+		request.json["descricao"],
+		request.json["data"],
+		request.json["horario"],
+	)
 
-    try:
-        new_exam.save_to_db()
-    except Exception as err:
-        return {"menssage": f"Error while register new exam: {err}"}, 404
+	try:
+		new_exam.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while register new exam: {err}"}, 404
 
-    return {"message": "exam registered succesfully!"}, 201
+	return {"message": "exam registered succesfully!"}, 201
 
 
 @app.route("/exame/<exame_id>", methods=["GET"])
 # @jwt_required()
 def get_exam(exame_id):
-    exam = Exam.find_exam_by_id(exame_id)
+	exam = Exam.find_exam_by_id(exame_id)
 
-    if not exam:
-        return {"message": "Exam not found!"}, 404
+	if not exam:
+		return {"message": "Exam not found!"}, 404
 
-    return {
-        "id": exam.id,
-        "nome": exam.nome,
-        "descricao": exam.descricao,
-        "data": exam.data,
-        "horario": exam.horario,
-    }, 200
+	return {
+		"id": exam.id,
+		"nome": exam.nome,
+		"descricao": exam.descricao,
+		"data": exam.data,
+		"horario": exam.horario,
+	}, 200
 
 
 @app.route("/exame/<exame_id>", methods=["PUT"])
 # @jwt_required()
 def update_exam(exame_id):
-    exam = Exam.find_exam_by_id(exame_id)
+	exam = Exam.find_exam_by_id(exame_id)
 
-    if not exam:
-        return {"message": "Exam not found!"}, 404
+	if not exam:
+		return {"message": "Exam not found!"}, 404
 
-    exam.nome = request.json["nome"]
-    exam.descricao = request.json["descricao"]
-    exam.data = request.json["data"]
-    exam.horario = request.json["horario"]
+	exam.nome = request.json["nome"]
+	exam.descricao = request.json["descricao"]
+	exam.data = request.json["data"]
+	exam.horario = request.json["horario"]
 
-    try:
-        exam.save_to_db()
-    except Exception as err:
-        return {"mensagem": f"Erro ao atualizar exame: {err}"}, 400
+	try:
+		exam.save_to_db()
+	except Exception as err:
+		return {"mensagem": f"Erro ao atualizar exame: {err}"}, 400
 
-    return {"message": "exam updated succesfully!"}, 200
+	return {"message": "exam updated succesfully!"}, 200
 
 
 @app.route("/exame/<exame_id>", methods=["DELETE"])
 # @jwt_required()
 def delete_exam(exame_id):
-    exam = Exam.find_exam_by_id(exame_id)
+	exam = Exam.find_exam_by_id(exame_id)
 
-    if exam:
-        exam.delete_from_db()
-        return {"message": "exam deleted successfully!"}, 200
+	if exam:
+		exam.delete_from_db()
+		return {"message": "exam deleted successfully!"}, 200
 
-    return {"message": "Error while delete exam"}, 400
+	return {"message": "Error while delete exam"}, 400
