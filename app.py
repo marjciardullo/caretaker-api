@@ -4,6 +4,7 @@ from models.user import User
 from models.medication import Medication
 from models.appointment import Appointment
 from models.exam import Exam
+from models.reminder import Reminder
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import JWTManager
@@ -58,7 +59,17 @@ def register():
 	except Exception as err:
 		return {"message": f"Error while register new user: {err}"}, 404
 
-	return {"message": "User registered succesfully!"}, 201
+	access_token = create_access_token(identity=new_user.email)
+	response = {}
+	response["access_token"] = access_token
+	response["usuario"] = {
+		"id": new_user.id,
+		"username": new_user.username,
+		"nome": new_user.nome,
+		"email": new_user.email,
+		"nascimento": new_user.nascimento,
+	}
+	return response, 200
 
 
 @app.route("/login", methods=["POST"])
@@ -99,28 +110,51 @@ def get_user(user_id):
 
 
 @app.route("/usuario/<user_id>", methods=["PUT"])
-# @jwt_required()
+@jwt_required()
 def update_user(user_id):
 	user = User.find_user_by_id(user_id)
 
 	if not user:
 		return {"message": "User not found!"}, 404
 
+	user_username = User.find_user_by_username(request.json["username"])
+	if user_username:
+		riseErr = user.id != user_username.id
+		if riseErr:
+			return {"message": "Esse nome de usuário já está sendo usado por outra pessoa"}, 404
+
+	user_email = User.find_user_by_email(request.json["email"])
+	if user_email:
+		riseErr = user.id != user_email.id
+		if riseErr:
+			return {"message": "Esse e-mail já está sendo usado por outra pessoa"}, 404
+
+	user.username = request.json["username"]
 	user.nome = request.json["nome"]
 	user.email = request.json["email"]
-	user.senha = request.json["senha"]
 	user.nascimento = request.json["nascimento"]
+
+	if request.json["senha"] is not "":
+		user.senha = request.json["senha"]
 
 	try:
 		user.save_to_db()
 	except Exception as err:
 		return {"mensagem": f"Erro ao atualizar usuário: {err}"}, 400
 
-	return {"message": "user updated succesfully!"}, 200
+	response = {}
+	response["usuario"] = {
+		"id": user.id,
+		"username": user.username,
+		"nome": user.nome,
+		"email": user.email,
+		"nascimento": user.nascimento,
+	}
+	return response, 200
 
 
 @app.route("/usuario/<user_id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete_user(user_id):
 	user = User.find_user_by_id(user_id)
 
