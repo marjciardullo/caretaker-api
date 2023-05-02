@@ -5,18 +5,21 @@ class Appointment(db.Model):
     __tablename__ = "consulta"
 
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), unique=False)
+    user_id = db.Column(db.Integer)
+    nome = db.Column(db.String(100))
     descricao = db.Column(db.String(500))
     data = db.Column(db.String(100))
     horario = db.Column(db.String(100))
 
     def __init__(
         self,
+        user_id,
         nome,
         descricao,
         data,
         horario,
     ):
+        self.user_id = user_id
         self.nome = nome
         self.descricao = descricao
         self.data = data
@@ -33,7 +36,3 @@ class Appointment(db.Model):
     @classmethod
     def find_appointment_by_id(cls, _id):
         return cls.query.filter_by(id=_id).first()
-
-    @classmethod
-    def find_appointment_by_name(cls, nome):
-        return cls.query.filter_by(nome=nome).first()

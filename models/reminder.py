@@ -5,7 +5,7 @@ class Reminder(db.Model):
     __tablename__ = "lembrete"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(100), unique=False)
+    user_id = db.Column(db.Integer)
     descricao = db.Column(db.String(500))
     data = db.Column(db.String(100))
     horario = db.Column(db.String(100))

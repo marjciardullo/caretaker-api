@@ -5,7 +5,8 @@ class Medication(db.Model):
     __tablename__ = "medicamento"
 
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), unique=False)
+    user_id = db.Column(db.Integer)
+    nome = db.Column(db.String(100))
     dosagem = db.Column(db.String(200))
     qt_medicamento = db.Column(db.Float)
     obs_medicamento = db.Column(db.String(500))
@@ -14,6 +15,7 @@ class Medication(db.Model):
 
     def __init__(
         self,
+        user_id,
         nome,
         dosagem,
         qt_medicamento,
@@ -21,6 +23,7 @@ class Medication(db.Model):
         frequencia_diaria,
         frequencia_horas,
     ):
+        self.user_id = user_id
         self.nome = nome
         self.dosagem = dosagem
         self.qt_medicamento = qt_medicamento
@@ -39,7 +42,3 @@ class Medication(db.Model):
     @classmethod
     def find_medication_by_id(cls, _id):
         return cls.query.filter_by(id=_id).first()
-
-    @classmethod
-    def find_medication_by_name(cls, nome):
-        return cls.query.filter_by(nome=nome).first()

@@ -5,9 +5,7 @@ from models.medication import Medication
 from models.appointment import Appointment
 from models.exam import Exam
 from models.reminder import Reminder
-from flask_jwt_extended import create_access_token
-from flask_jwt_extended import jwt_required
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import create_access_token, jwt_required, JWTManager, get_jwt_identity
 from db import db
 from flask_cors import CORS, cross_origin
 import json
@@ -28,11 +26,9 @@ def create_tables():
 	print("Creating database...")
 	db.create_all()
 
-
-@app.route("/")
-def home_view():
-	return "<h1>Caretaker Flask Api</h1>"
-
+# -------------------------------------------------------------------------------------------------------------------
+# LOGIN / SIGN UP FLOW ----------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/usuario/registrar", methods=["POST"])
 def register():
@@ -91,23 +87,9 @@ def login():
 
 	return {"message": "Please, sign in to your account!"}, 404
 
-
-@app.route("/usuario/<user_id>", methods=["GET"])
-@jwt_required()
-def get_user(user_id):
-	user = User.find_user_by_id(user_id)
-
-	if not user:
-		return {"message": "Usuário não encontrado!"}, 404
-
-	return {
-		"id": user.id,
-		"username": user.username,
-		"nome": user.nome,
-		"email": user.email,
-		"nascimento": user.nascimento,
-	}, 200
-
+# -------------------------------------------------------------------------------------------------------------------
+# USER ROUTES -------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/usuario/<user_id>", methods=["PUT"])
 @jwt_required()
@@ -134,7 +116,7 @@ def update_user(user_id):
 	user.email = request.json["email"]
 	user.nascimento = request.json["nascimento"]
 
-	if request.json["senha"] is not "":
+	if request.json["senha"] != "":
 		user.senha = request.json["senha"]
 
 	try:
@@ -164,23 +146,26 @@ def delete_user(user_id):
 
 	return {"message": "Error while delete user"}, 400
 
+# -------------------------------------------------------------------------------------------------------------------
+# POST ROUTES -------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/medicamento", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def create_medication():
-
-	medication = Medication.find_medication_by_name(nome=request.json["nome"])
-
-	if medication:
-		return {"message": "Medication already exists"}, 404
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
 
 	new_medication = Medication(
+		user.id,
 		request.json["nome"],
 		request.json["dosagem"],
-		request.json["qt_medicamento"],
+		float(request.json["qt_medicamento"]),
 		request.json["obs_medicamento"],
-		request.json["frequencia_diaria"],
-		request.json["frequencia_horas"],
+		0, # request.json["frequencia_diaria"],
+		int(request.json["frequencia_horas"]),
 	)
 
 	try:
@@ -190,25 +175,56 @@ def create_medication():
 
 	return {"message": "medication registered succesfully!"}, 201
 
+@app.route("/consulta", methods=["POST"])
+@jwt_required()
+def create_appointment():
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
 
-@app.route("/medicamento/<med_id>", methods=["GET"])
-# @jwt_required()
-def get_medication(med_id):
-	medication = Medication.find_medication_by_id(med_id)
+	new_appointment = Appointment(
+		user.id,
+		request.json["nome"],
+		request.json["descricao"],
+		request.json["data"],
+		request.json["horario"],
+	)
 
-	if not medication:
-		return {"message": "Medication not found!"}, 404
+	try:
+		new_appointment.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while register new appointment: {err}"}, 404
 
-	return {
-		"id": medication.id,
-		"nome": medication.nome,
-		"dosagem": medication.dosagem,
-		"qt_medicamento": medication.qt_medicamento,
-		"obs_medicamento": medication.obs_medicamento,
-		"frequencia_diaria": medication.frequencia_diaria,
-		"frequencia_horas": medication.frequencia_horas,
-	}, 200
+	return {"message": "appointment registered succesfully!"}, 201
 
+@app.route("/exame", methods=["POST"])
+@jwt_required()
+def create_exam():
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
+	new_exam = Exam(
+		user.id,
+		request.json["medico"],
+		request.json["exame"],
+		request.json["local"],
+		request.json["data"],
+		request.json["horario"],
+	)
+
+	try:
+		new_exam.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while register new exam: {err}"}, 404
+
+	return {"message": "exam registered succesfully!"}, 201
+
+# -------------------------------------------------------------------------------------------------------------------
+# PUT ROUTES --------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/medicamento/<med_id>", methods=["PUT"])
 # @jwt_required()
@@ -233,59 +249,6 @@ def update_medication(med_id):
 	return {"message": "medication updated succesfully!"}, 200
 
 
-@app.route("/medicamento/<med_id>", methods=["DELETE"])
-# @jwt_required()
-def delete_medication(med_id):
-	medication = Medication.find_medication_by_id(med_id)
-
-	if medication:
-		medication.delete_from_db()
-		return {"message": "medication deleted successfully!"}, 200
-
-	return {"message": "Error while delete medication"}, 400
-
-
-@app.route("/consulta", methods=["POST"])
-# @jwt_required()
-def create_appointment():
-
-	appointment = Appointment.find_appointment_by_name(nome=request.json["nome"])
-
-	if appointment:
-		return {"message": "Appointment already exists"}, 404
-
-	new_appointment = Appointment(
-		request.json["nome"],
-		request.json["descricao"],
-		request.json["data"],
-		request.json["horario"],
-	)
-
-	try:
-		new_appointment.save_to_db()
-	except Exception as err:
-		return {"menssage": f"Error while register new appointment: {err}"}, 404
-
-	return {"message": "appointment registered succesfully!"}, 201
-
-
-@app.route("/consulta/<cons_id>", methods=["GET"])
-# @jwt_required()
-def get_appointment(cons_id):
-	appointment = Appointment.find_appointment_by_id(cons_id)
-
-	if not appointment:
-		return {"message": "Appointment not found!"}, 404
-
-	return {
-		"id": appointment.id,
-		"nome": appointment.nome,
-		"descricao": appointment.descricao,
-		"data": appointment.data,
-		"horario": appointment.horario,
-	}, 200
-
-
 @app.route("/consulta/<cons_id>", methods=["PUT"])
 # @jwt_required()
 def update_appointment(cons_id):
@@ -305,59 +268,6 @@ def update_appointment(cons_id):
 		return {"mensagem": f"Erro ao atualizar consulta: {err}"}, 400
 
 	return {"message": "appointment updated succesfully!"}, 200
-
-
-@app.route("/consulta/<cons_id>", methods=["DELETE"])
-# @jwt_required()
-def delete_appointment(cons_id):
-	appointment = Appointment.find_appointment_by_id(cons_id)
-
-	if appointment:
-		appointment.delete_from_db()
-		return {"message": "appointment deleted successfully!"}, 200
-
-	return {"message": "Error while delete appointment"}, 400
-
-
-@app.route("/exame", methods=["POST"])
-# @jwt_required()
-def create_exam():
-
-	exam = Exam.find_exam_by_name(nome=request.json["nome"])
-
-	if exam:
-		return {"message": "Exam already exists"}, 404
-
-	new_exam = Exam(
-		request.json["nome"],
-		request.json["descricao"],
-		request.json["data"],
-		request.json["horario"],
-	)
-
-	try:
-		new_exam.save_to_db()
-	except Exception as err:
-		return {"menssage": f"Error while register new exam: {err}"}, 404
-
-	return {"message": "exam registered succesfully!"}, 201
-
-
-@app.route("/exame/<exame_id>", methods=["GET"])
-# @jwt_required()
-def get_exam(exame_id):
-	exam = Exam.find_exam_by_id(exame_id)
-
-	if not exam:
-		return {"message": "Exam not found!"}, 404
-
-	return {
-		"id": exam.id,
-		"nome": exam.nome,
-		"descricao": exam.descricao,
-		"data": exam.data,
-		"horario": exam.horario,
-	}, 200
 
 
 @app.route("/exame/<exame_id>", methods=["PUT"])
@@ -380,6 +290,9 @@ def update_exam(exame_id):
 
 	return {"message": "exam updated succesfully!"}, 200
 
+# -------------------------------------------------------------------------------------------------------------------
+# DELETE ROUTES -----------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/exame/<exame_id>", methods=["DELETE"])
 # @jwt_required()
@@ -391,3 +304,99 @@ def delete_exam(exame_id):
 		return {"message": "exam deleted successfully!"}, 200
 
 	return {"message": "Error while delete exam"}, 400
+
+@app.route("/medicamento/<med_id>", methods=["DELETE"])
+# @jwt_required()
+def delete_medication(med_id):
+	medication = Medication.find_medication_by_id(med_id)
+
+	if medication:
+		medication.delete_from_db()
+		return {"message": "medication deleted successfully!"}, 200
+
+	return {"message": "Error while delete medication"}, 400
+
+
+@app.route("/consulta/<cons_id>", methods=["DELETE"])
+# @jwt_required()
+def delete_appointment(cons_id):
+	appointment = Appointment.find_appointment_by_id(cons_id)
+
+	if appointment:
+		appointment.delete_from_db()
+		return {"message": "appointment deleted successfully!"}, 200
+
+	return {"message": "Error while delete appointment"}, 400
+
+
+# -------------------------------------------------------------------------------------------------------------------
+# GET ROUTES -----------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
+
+"""
+@app.route("/usuario/<user_id>", methods=["GET"])
+@jwt_required()
+def get_user(user_id):
+	user = User.find_user_by_id(user_id)
+
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
+	return {
+		"id": user.id,
+		"username": user.username,
+		"nome": user.nome,
+		"email": user.email,
+		"nascimento": user.nascimento,
+	}, 200
+
+@app.route("/medicamento/<med_id>", methods=["GET"])
+# @jwt_required()
+def get_medication(med_id):
+	medication = Medication.find_medication_by_id(med_id)
+
+	if not medication:
+		return {"message": "Medication not found!"}, 404
+
+	return {
+		"id": medication.id,
+		"nome": medication.nome,
+		"dosagem": medication.dosagem,
+		"qt_medicamento": medication.qt_medicamento,
+		"obs_medicamento": medication.obs_medicamento,
+		"frequencia_diaria": medication.frequencia_diaria,
+		"frequencia_horas": medication.frequencia_horas,
+	}, 200
+
+@app.route("/consulta/<cons_id>", methods=["GET"])
+# @jwt_required()
+def get_appointment(cons_id):
+	appointment = Appointment.find_appointment_by_id(cons_id)
+
+	if not appointment:
+		return {"message": "Appointment not found!"}, 404
+
+	return {
+		"id": appointment.id,
+		"nome": appointment.nome,
+		"descricao": appointment.descricao,
+		"data": appointment.data,
+		"horario": appointment.horario,
+	}, 200
+
+@app.route("/exame/<exame_id>", methods=["GET"])
+# @jwt_required()
+def get_exam(exame_id):
+	exam = Exam.find_exam_by_id(exame_id)
+
+	if not exam:
+		return {"message": "Exam not found!"}, 404
+
+	return {
+		"id": exam.id,
+		"nome": exam.nome,
+		"descricao": exam.descricao,
+		"data": exam.data,
+		"horario": exam.horario,
+	}, 200
+"""

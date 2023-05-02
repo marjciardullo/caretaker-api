@@ -5,20 +5,26 @@ class Exam(db.Model):
     __tablename__ = "exame"
 
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), unique=False)
-    descricao = db.Column(db.String(500))
+    user_id = db.Column(db.Integer)
+    medico = db.Column(db.String(100))
+    exame = db.Column(db.String(100))
+    local = db.Column(db.String(200))
     data = db.Column(db.String(100))
     horario = db.Column(db.String(100))
 
     def __init__(
         self,
-        nome,
-        descricao,
+        user_id,
+        medico,
+        exame,
+        local,
         data,
         horario,
     ):
-        self.nome = nome
-        self.descricao = descricao
+        self.user_id = user_id
+        self.medico = medico
+        self.exame = exame
+        self.local = local
         self.data = data
         self.horario = horario
 
@@ -33,7 +39,3 @@ class Exam(db.Model):
     @classmethod
     def find_exam_by_id(cls, _id):
         return cls.query.filter_by(id=_id).first()
-
-    @classmethod
-    def find_exam_by_name(cls, nome):
-        return cls.query.filter_by(nome=nome).first()
