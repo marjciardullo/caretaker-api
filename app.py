@@ -164,7 +164,6 @@ def create_medication():
 		request.json["dosagem"],
 		float(request.json["qt_medicamento"]),
 		request.json["obs_medicamento"],
-		0, # request.json["frequencia_diaria"],
 		int(request.json["frequencia_horas"]),
 	)
 
@@ -222,23 +221,52 @@ def create_exam():
 
 	return {"message": "exam registered succesfully!"}, 201
 
+@app.route("/lembrete", methods=["POST"])
+@jwt_required()
+def create_reminder():
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
+	new_reminder = Reminder(
+		user.id,
+		request.json["descricao"],
+		request.json["data"],
+		request.json["horario"],
+	)
+
+	try:
+		new_reminder.save_to_db()
+	except Exception as err:
+		return {"menssage": f"Error while registering new reminder: {err}"}, 404
+
+	return {"message": "medication registered succesfully!"}, 201
+
 # -------------------------------------------------------------------------------------------------------------------
 # PUT ROUTES --------------------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/medicamento/<med_id>", methods=["PUT"])
-# @jwt_required()
+@jwt_required()
 def update_medication(med_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
 	medication = Medication.find_medication_by_id(med_id)
 
 	if not medication:
 		return {"message": "Medication not found!"}, 404
 
+	if not medication.usuario_id == user.id:
+		return {"message": "Você não pode alterar essa informação!"}, 403
+
 	medication.nome = request.json["nome"]
 	medication.dosagem = request.json["dosagem"]
 	medication.qt_medicamento = request.json["qt_medicamento"]
 	medication.obs_medicamento = request.json["obs_medicamento"]
-	medication.frequencia_diaria = request.json["frequencia_diaria"]
 	medication.frequencia_horas = request.json["frequencia_horas"]
 
 	try:
@@ -250,12 +278,20 @@ def update_medication(med_id):
 
 
 @app.route("/consulta/<cons_id>", methods=["PUT"])
-# @jwt_required()
+@jwt_required()
 def update_appointment(cons_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
 	appointment = Appointment.find_appointment_by_id(cons_id)
 
 	if not appointment:
 		return {"message": "Appointment not found!"}, 404
+
+	if not appointment.usuario_id == user.id:
+		return {"message": "Você não pode alterar essa informação!"}, 403
 
 	appointment.nome = request.json["nome"]
 	appointment.descricao = request.json["descricao"]
@@ -271,12 +307,20 @@ def update_appointment(cons_id):
 
 
 @app.route("/exame/<exame_id>", methods=["PUT"])
-# @jwt_required()
+@jwt_required()
 def update_exam(exame_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
 	exam = Exam.find_exam_by_id(exame_id)
 
 	if not exam:
 		return {"message": "Exam not found!"}, 404
+
+	if not exam.usuario_id == user.id:
+		return {"message": "Você não pode alterar essa informação!"}, 403
 
 	exam.nome = request.json["nome"]
 	exam.descricao = request.json["descricao"]
@@ -290,6 +334,34 @@ def update_exam(exame_id):
 
 	return {"message": "exam updated succesfully!"}, 200
 
+
+@app.route("/lembrete/<lemb_id>", methods=["PUT"])
+@jwt_required()
+def update_reminder(lemb_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "User not found!"}, 404
+
+	reminder = Reminder.find_reminder_by_id(lemb_id)
+
+	if not reminder:
+		return {"message": "Reminder not found!"}, 404
+
+	if not reminder.usuario_id == user.id:
+		return {"message": "Você não pode alterar essa informação!"}, 403
+
+	reminder.descricao = request.json["descricao"]
+	reminder.data = request.json["data"]
+	reminder.horario = request.json["horario"]
+
+	try:
+		reminder.save_to_db()
+	except Exception as err:
+		return {"mensagem": f"Erro ao atualizar lembrete: {err}"}, 400
+
+	return {"message": "appointment updated succesfully!"}, 200
+
 # -------------------------------------------------------------------------------------------------------------------
 # DELETE ROUTES -----------------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------------------------------
@@ -301,7 +373,7 @@ def delete_exam(exame_id):
 
 	if exam:
 		exam.delete_from_db()
-		return {"message": "exam deleted successfully!"}, 200
+		return {"message": "Exam deleted successfully!"}, 200
 
 	return {"message": "Error while delete exam"}, 400
 
@@ -312,7 +384,7 @@ def delete_medication(med_id):
 
 	if medication:
 		medication.delete_from_db()
-		return {"message": "medication deleted successfully!"}, 200
+		return {"message": "Medication deleted successfully!"}, 200
 
 	return {"message": "Error while delete medication"}, 400
 
@@ -327,6 +399,18 @@ def delete_appointment(cons_id):
 		return {"message": "appointment deleted successfully!"}, 200
 
 	return {"message": "Error while delete appointment"}, 400
+
+
+@app.route("/consulta/<lemb_id>", methods=["DELETE"])
+# @jwt_required()
+def delete_reminder(lemb_id):
+	reminder = Reminder.find_reminder_by_id(lemb_id)
+
+	if reminder:
+		reminder.delete_from_db()
+		return {"message": "Reminder deleted successfully!"}, 200
+
+	return {"message": "Error while delete reminder"}, 400
 
 
 # -------------------------------------------------------------------------------------------------------------------
@@ -364,7 +448,6 @@ def get_medication(med_id):
 		"dosagem": medication.dosagem,
 		"qt_medicamento": medication.qt_medicamento,
 		"obs_medicamento": medication.obs_medicamento,
-		"frequencia_diaria": medication.frequencia_diaria,
 		"frequencia_horas": medication.frequencia_horas,
 	}, 200
 

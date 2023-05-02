@@ -5,19 +5,19 @@ class Reminder(db.Model):
     __tablename__ = "lembrete"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
+    usuario_id = db.Column(db.Integer)
     descricao = db.Column(db.String(500))
     data = db.Column(db.String(100))
     horario = db.Column(db.String(100))
 
     def __init__(
         self,
-        user_id,
+        usuario_id,
         descricao,
         data,
         horario,
     ):
-        self.user_id = user_id
+        self.usuario_id = usuario_id
         self.descricao = descricao
         self.data = data
         self.horario = horario
@@ -31,5 +31,5 @@ class Reminder(db.Model):
         db.session.commit()
 
     @classmethod
-    def find_reminder_by_user_id(cls, _id):
-        return cls.query.filter_by(user_id=user_id)
+    def find_reminder_by_usuario_id(cls, _id):
+        return cls.query.filter_by(usuario_id=usuario_id)
