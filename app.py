@@ -7,7 +7,7 @@ from models.exam import Exam
 from models.reminder import Reminder
 from flask_jwt_extended import create_access_token, jwt_required, JWTManager, get_jwt_identity
 from db import db
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import json
 
 # mysql://USER:PASSWORD@HOST:PORT/DATABASE
@@ -37,10 +37,10 @@ def register():
 	user_username = User.find_user_by_username(username=request.json["username"])
 
 	if user_email:
-		return {"message": "Email already exists"}, 404
+		return {"message": "Esse email já está sendo utilizado. Se você já tiver uma conta, use a opção de 'Entrar'."}, 404
 
 	if user_username:
-		return {"message": "Username already exists"}, 404
+		return {"message": "Esse nome de usuário já está sendo utilizado. Escolha outro nome de usuário (você pode colocar números ou símbolos (@#$&*) para deixá-lo mais único."}, 404
 
 	new_user = User(
 		request.json["username"],
@@ -140,11 +140,19 @@ def update_user(user_id):
 def delete_user(user_id):
 	user = User.find_user_by_id(user_id)
 
-	if user:
-		user.delete_from_db()
-		return {"message": "user deleted successfully!"}, 200
+	if not user:
+		return {"message": "User not found"}, 404
 
-	return {"message": "Error while delete user"}, 400
+	all_items = Medication.find_all(user_id) + Exam.find_all(user_id) + Appointment.find_all(user_id) + Reminder.find_all(user_id)
+	for item in all_items:
+		item.delete_from_db()
+
+	try:
+		user.delete_from_db()
+	except:
+		return {"message": "Error while deleting user"}, 400
+
+	return {"message": "user deleted successfully!"}, 200
 
 # -------------------------------------------------------------------------------------------------------------------
 # POST ROUTES -------------------------------------------------------------------------------------------------------
@@ -170,7 +178,7 @@ def create_medication():
 	try:
 		new_medication.save_to_db()
 	except Exception as err:
-		return {"menssage": f"Error while register new medication: {err}"}, 404
+		return {"message": f"Error while register new medication: {err}"}, 404
 
 	return {"message": "medication registered succesfully!"}, 201
 
@@ -193,7 +201,7 @@ def create_appointment():
 	try:
 		new_appointment.save_to_db()
 	except Exception as err:
-		return {"menssage": f"Error while register new appointment: {err}"}, 404
+		return {"message": f"Error while register new appointment: {err}"}, 404
 
 	return {"message": "appointment registered succesfully!"}, 201
 
@@ -217,7 +225,7 @@ def create_exam():
 	try:
 		new_exam.save_to_db()
 	except Exception as err:
-		return {"menssage": f"Error while register new exam: {err}"}, 404
+		return {"message": f"Error while register new exam: {err}"}, 404
 
 	return {"message": "exam registered succesfully!"}, 201
 
@@ -239,7 +247,7 @@ def create_reminder():
 	try:
 		new_reminder.save_to_db()
 	except Exception as err:
-		return {"menssage": f"Error while registering new reminder: {err}"}, 404
+		return {"message": f"Error while registering new reminder: {err}"}, 404
 
 	return {"message": "medication registered succesfully!"}, 201
 
@@ -322,8 +330,9 @@ def update_exam(exame_id):
 	if not exam.usuario_id == user.id:
 		return {"message": "Você não pode alterar essa informação!"}, 403
 
-	exam.nome = request.json["nome"]
-	exam.descricao = request.json["descricao"]
+	exam.medico = request.json["medico"]
+	exam.exame = request.json["exame"]
+	exam.local = request.json["local"]
 	exam.data = request.json["data"]
 	exam.horario = request.json["horario"]
 
@@ -416,6 +425,62 @@ def delete_reminder(lemb_id):
 # -------------------------------------------------------------------------------------------------------------------
 # GET ROUTES -----------------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------------------------------
+
+@app.route("/calendario/<user_id>", methods=["GET"])
+@jwt_required()
+def get_data(user_id):
+	user = User.find_user_by_id(user_id)
+
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
+	fetched_data = []
+	
+	medications = Medication.find_all(user_id)
+	for m in medications:
+		fetched_data.append({
+			'usuario_id': m.usuario_id,
+			'item_id': m.id,
+			'titulo': m.nome,
+			'frequencia': m.frequencia_horas,
+			'descricao': m.obs_medicamento,
+			'dose': m.dosagem,
+			'qt_medicamento': m.qt_medicamento,
+			'local': '',
+			'data': '',
+			'horario': '',
+			'tipo': 'medicamento'
+		})
+
+	exams = Exam.find_all(user_id)
+	for e in exams:
+		fetched_data.append({
+			'usuario_id': e.usuario_id,
+			'item_id': e.id,
+			'titulo': e.exame,
+			'frequencia': '',
+			'descricao': e.medico,
+			'local': e.local,
+			'data': e.data,
+			'horario': e.horario,
+			'tipo': 'exame'
+		})
+
+	appointments = Appointment.find_all(user_id)
+	for a in appointments:
+		fetched_data.append({
+			'usuario_id': a.usuario_id,
+			'item_id': a.id,
+			'titulo': a.nome,
+			'frequencia': '',
+			'descricao': a.descricao,
+			'local': '',
+			'data': a.data,
+			'horario': a.horario,
+			'tipo': 'consulta'
+		})
+
+	return {"message": "success", "fetched_data": fetched_data}, 200
 
 """
 @app.route("/usuario/<user_id>", methods=["GET"])

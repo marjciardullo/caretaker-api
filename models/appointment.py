@@ -38,5 +38,5 @@ class Appointment(db.Model):
         return cls.query.filter_by(id=_id).first()
 
     @classmethod
-    def find_appointment_by_usuario_id(cls, _id):
-        return cls.query.filter_by(usuario_id=usuario_id)
+    def find_all(cls, usuario_id):
+        return cls.query.filter_by(usuario_id=usuario_id).all()
