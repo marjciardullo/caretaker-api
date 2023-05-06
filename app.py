@@ -97,7 +97,7 @@ def update_user(user_id):
 	user = User.find_user_by_id(user_id)
 
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	user_username = User.find_user_by_username(request.json["username"])
 	if user_username:
@@ -141,7 +141,7 @@ def delete_user(user_id):
 	user = User.find_user_by_id(user_id)
 
 	if not user:
-		return {"message": "User not found"}, 404
+		return {"message": "Usuário não encontrado"}, 404
 
 	all_items = Medication.find_all(user_id) + Exam.find_all(user_id) + Appointment.find_all(user_id) + Reminder.find_all(user_id)
 	for item in all_items:
@@ -164,7 +164,7 @@ def create_medication():
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	new_medication = Medication(
 		user.id,
@@ -188,7 +188,7 @@ def create_appointment():
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	new_appointment = Appointment(
 		user.id,
@@ -211,7 +211,7 @@ def create_exam():
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	new_exam = Exam(
 		user.id,
@@ -235,7 +235,7 @@ def create_reminder():
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	new_reminder = Reminder(
 		user.id,
@@ -291,12 +291,12 @@ def update_appointment(cons_id):
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	appointment = Appointment.find_appointment_by_id(cons_id)
 
 	if not appointment:
-		return {"message": "Appointment not found!"}, 404
+		return {"message": "Consulta não encontrada!"}, 404
 
 	if not appointment.usuario_id == user.id:
 		return {"message": "Você não pode alterar essa informação!"}, 403
@@ -320,12 +320,12 @@ def update_exam(exame_id):
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	exam = Exam.find_exam_by_id(exame_id)
 
 	if not exam:
-		return {"message": "Exam not found!"}, 404
+		return {"message": "Exame não encontrado!"}, 404
 
 	if not exam.usuario_id == user.id:
 		return {"message": "Você não pode alterar essa informação!"}, 403
@@ -350,12 +350,12 @@ def update_reminder(lemb_id):
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	reminder = Reminder.find_reminder_by_id(lemb_id)
 
 	if not reminder:
-		return {"message": "Reminder not found!"}, 404
+		return {"message": "Lembrete não encontrado!"}, 404
 
 	if not reminder.usuario_id == user.id:
 		return {"message": "Você não pode alterar essa informação!"}, 403
@@ -397,7 +397,15 @@ def delete_exam(exame_id):
 @app.route("/medicamento/<med_id>", methods=["DELETE"])
 @jwt_required()
 def delete_medication(med_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
 	medication = Medication.find_medication_by_id(med_id)
+
+	if not medication.usuario_id == user.id:
+		return {"message": "Você não pode deletar essa informação!"}, 403
 
 	if medication:
 		medication.delete_from_db()
@@ -409,7 +417,15 @@ def delete_medication(med_id):
 @app.route("/consulta/<cons_id>", methods=["DELETE"])
 @jwt_required()
 def delete_appointment(cons_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
 	appointment = Appointment.find_appointment_by_id(cons_id)
+
+	if not appointment.usuario_id == user.id:
+		return {"message": "Você não pode deletar essa informação!"}, 403
 
 	if appointment:
 		appointment.delete_from_db()
@@ -421,7 +437,15 @@ def delete_appointment(cons_id):
 @app.route("/consulta/<lemb_id>", methods=["DELETE"])
 @jwt_required()
 def delete_reminder(lemb_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
 	reminder = Reminder.find_reminder_by_id(lemb_id)
+
+	if not reminder.usuario_id == user.id:
+		return {"message": "Você não pode deletar essa informação!"}, 403
 
 	if reminder:
 		reminder.delete_from_db()
@@ -513,7 +537,7 @@ def get_medication(med_id):
 	medication = Medication.find_medication_by_id(med_id)
 
 	if not medication:
-		return {"message": "Medication not found!"}, 404
+		return {"message": "Medication não encontrado!"}, 404
 
 	return {
 		"id": medication.id,
@@ -530,7 +554,7 @@ def get_appointment(cons_id):
 	appointment = Appointment.find_appointment_by_id(cons_id)
 
 	if not appointment:
-		return {"message": "Appointment not found!"}, 404
+		return {"message": "Appointment não encontrado!"}, 404
 
 	return {
 		"id": appointment.id,
@@ -546,7 +570,7 @@ def get_exam(exame_id):
 	exam = Exam.find_exam_by_id(exame_id)
 
 	if not exam:
-		return {"message": "Exam not found!"}, 404
+		return {"message": "Exam não encontrado!"}, 404
 
 	return {
 		"id": exam.id,
