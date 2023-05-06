@@ -261,12 +261,12 @@ def update_medication(med_id):
 	token_email = get_jwt_identity()
 	user = User.find_user_by_email(email=token_email)
 	if not user:
-		return {"message": "User not found!"}, 404
+		return {"message": "Usuário não encontrado!"}, 404
 
 	medication = Medication.find_medication_by_id(med_id)
 
 	if not medication:
-		return {"message": "Medication not found!"}, 404
+		return {"message": "Medicamento não encontrado!"}, 404
 
 	if not medication.usuario_id == user.id:
 		return {"message": "Você não pode alterar essa informação!"}, 403
@@ -376,18 +376,26 @@ def update_reminder(lemb_id):
 # -------------------------------------------------------------------------------------------------------------------
 
 @app.route("/exame/<exame_id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete_exam(exame_id):
+	token_email = get_jwt_identity()
+	user = User.find_user_by_email(email=token_email)
+	if not user:
+		return {"message": "Usuário não encontrado!"}, 404
+
 	exam = Exam.find_exam_by_id(exame_id)
+
+	if not exame.usuario_id == user.id:
+		return {"message": "Você não pode deletar essa informação!"}, 403
 
 	if exam:
 		exam.delete_from_db()
-		return {"message": "Exam deleted successfully!"}, 200
+		return {"message": "Exame deletado com sucesso!"}, 200
 
 	return {"message": "Error while delete exam"}, 400
 
 @app.route("/medicamento/<med_id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete_medication(med_id):
 	medication = Medication.find_medication_by_id(med_id)
 
@@ -399,7 +407,7 @@ def delete_medication(med_id):
 
 
 @app.route("/consulta/<cons_id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete_appointment(cons_id):
 	appointment = Appointment.find_appointment_by_id(cons_id)
 
@@ -411,7 +419,7 @@ def delete_appointment(cons_id):
 
 
 @app.route("/consulta/<lemb_id>", methods=["DELETE"])
-# @jwt_required()
+@jwt_required()
 def delete_reminder(lemb_id):
 	reminder = Reminder.find_reminder_by_id(lemb_id)
 
