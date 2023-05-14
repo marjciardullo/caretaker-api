@@ -512,6 +512,20 @@ def get_data(user_id):
 			'tipo': 'consulta'
 		})
 
+	reminders = Reminder.find_all(user_id)
+	for r in reminders:
+		fetched_data.append({
+			'usuario_id': r.usuario_id,
+			'item_id': r.id,
+			'titulo': 'Lembrar',
+			'frequencia': '',
+			'descricao': r.descricao,
+			'local': '',
+			'data': a.data,
+			'horario': a.horario,
+			'tipo': 'lembrete'
+		})
+
 	return {"message": "success", "fetched_data": fetched_data}, 200
 
 """
