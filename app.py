@@ -385,7 +385,7 @@ def delete_exam(exame_id):
 
 	exam = Exam.find_exam_by_id(exame_id)
 
-	if not exame.usuario_id == user.id:
+	if not exam.usuario_id == user.id:
 		return {"message": "Você não pode deletar essa informação!"}, 403
 
 	if exam:
@@ -434,7 +434,7 @@ def delete_appointment(cons_id):
 	return {"message": "Error while delete appointment"}, 400
 
 
-@app.route("/consulta/<lemb_id>", methods=["DELETE"])
+@app.route("/lembrete/<lemb_id>", methods=["DELETE"])
 @jwt_required()
 def delete_reminder(lemb_id):
 	token_email = get_jwt_identity()
@@ -467,7 +467,6 @@ def get_data(user_id):
 		return {"message": "Usuário não encontrado!"}, 404
 
 	fetched_data = []
-	
 	medications = Medication.find_all(user_id)
 	for m in medications:
 		fetched_data.append({
@@ -483,7 +482,6 @@ def get_data(user_id):
 			'horario': '',
 			'tipo': 'medicamento'
 		})
-
 	exams = Exam.find_all(user_id)
 	for e in exams:
 		fetched_data.append({
@@ -497,7 +495,6 @@ def get_data(user_id):
 			'horario': e.horario,
 			'tipo': 'exame'
 		})
-
 	appointments = Appointment.find_all(user_id)
 	for a in appointments:
 		fetched_data.append({
@@ -511,7 +508,6 @@ def get_data(user_id):
 			'horario': a.horario,
 			'tipo': 'consulta'
 		})
-
 	reminders = Reminder.find_all(user_id)
 	for r in reminders:
 		fetched_data.append({
