@@ -64,6 +64,7 @@ def register():
 		"nome": new_user.nome,
 		"email": new_user.email,
 		"nascimento": new_user.nascimento,
+		"senha": new_user.senha,
 	}
 	return response, 200
 
@@ -82,6 +83,7 @@ def login():
 			"nome": user.nome,
 			"email": user.email,
 			"nascimento": user.nascimento,
+			"senha": user.senha,
 		}
 		return response, 200
 
