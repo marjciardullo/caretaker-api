@@ -87,7 +87,7 @@ def login():
 		}
 		return response, 200
 
-	return {"message": "Please, sign in to your account!"}, 404
+	return {"message": "Nome de usuário e senha não correspondem à um usuario!"}, 404
 
 # -------------------------------------------------------------------------------------------------------------------
 # USER ROUTES -------------------------------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ def delete_user(user_id):
 	except:
 		return {"message": "Error while deleting user"}, 400
 
-	return {"message": "user deleted successfully!"}, 200
+	return {"message": "Usuário deletado com sucesso!"}, 200
 
 # -------------------------------------------------------------------------------------------------------------------
 # POST ROUTES -------------------------------------------------------------------------------------------------------
@@ -205,7 +205,7 @@ def create_appointment():
 	except Exception as err:
 		return {"message": f"Error while register new appointment: {err}"}, 404
 
-	return {"message": "appointment registered succesfully!"}, 201
+	return {"message": "Consulta registrada com sucesso!"}, 201
 
 @app.route("/exame", methods=["POST"])
 @jwt_required()
